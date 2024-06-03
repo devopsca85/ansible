@@ -1,0 +1,37 @@
+---
+
+MAIN_BACKUP_FOLDER: /storage-box
+
+#  Domain Names:
+RAC_APP_URL: rac-dev.pst.ag
+RAC_APP_DOC_ROOT: "/var/www/prod/oraclejetapplication2"
+
+CLAVIS_APP_URL: clavis-dev.pst.ag
+
+
+# PostgreSQL Info:
+
+POSTGRESQL_USER: postgres
+POSTGRESQL_USER_PASS: pcpsd78U986dRo3fjE6T9RHo4v
+
+
+# ArangoDB Info:
+ARANGODB_DIR: /data/PSTSOA/arangodb3/
+ARANGODB_ROOT_USER: root
+ARANGODB_ROOT_PASS: aJpVhuja755AzEe7sUQr
+ARANGODB_RAC_USER: RacUser
+ARANGODB_RAC_PASS: JaXvfs5t9CFRZN
+
+# Keycloak info:
+
+KEYCLOAK_SERVICE: keycloak
+KEYCLOAK_BAK_FILE: keycloak-bak.tar.gz
+KEYCLOAK_DOCUMENT_ROOT: /opt/services
+
+
+# JsonReport Info.
+
+JSONREPORT_DOC_ROOT: /data/PSTSOA
+JSONREPORT_SVC_NAME: jsonreport
+JSONREPORT_COMP_FILE: jsreportapp-file-bak.tar.gz
+NODEJS_VERSION: 8.x

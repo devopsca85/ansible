@@ -1,0 +1,31 @@
+[database]
+directory = /data/PSTSOA/arangodb3/
+
+# maximal-journal-size = 33554432
+
+[server]
+endpoint = tcp://0.0.0.0:8529
+storage-engine = mmfiles
+
+authentication = false
+
+statistics = true
+
+
+uid = arangodb
+
+
+[javascript]
+startup-directory = /usr/share/arangodb3/js
+app-path = /var/lib/arangodb3-apps
+
+
+[foxx]
+
+[log]
+level = info
+file = /var/log/arangodb3/arangod.log
+
+[cluster]
+
+[rocksdb]

@@ -1,0 +1,25 @@
+- include_tasks: basic.yaml
+  tags:
+    - basic
+    - ssfs
+- include_tasks: apache.yaml
+  tags:
+    - Apache2
+
+- include_tasks: postgres.yaml
+  tags:
+    - postgresql
+
+- include_tasks: arangodb.yaml
+  tags:
+    - arangodb
+
+- include_tasks: keycloak.yaml
+  tags:
+    - keycloak
+    - Apache2
+
+- include_tasks: jsonreport.yaml
+  tags:
+    - nodejs
+    - jsonreport

@@ -1,0 +1,19 @@
+---
+- name: Restart Apache2
+  become: true
+  service:
+    name: apache2
+    state: restarted
+
+- name: Restart ArangoDB
+  become: true
+  service: 
+    name: arangodb
+    state: restarted
+
+
+- name: Restart Jsonreport
+  become: true
+  service: 
+    name: "{{ JSONREPORT_SVC_NAME }}"
+    state: restarted

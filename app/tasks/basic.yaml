@@ -1,0 +1,119 @@
+- name: change hostname
+  command: hostnamectl set-hostname {{ RAC_APP_URL }}
+  tags:
+    - keycloak 
+
+
+- name: Update all packages
+  apt:
+    update_cache: yes
+  tags:
+    - basic
+
+- name: Install Basic packages
+  apt:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - python-minimal
+    - wget
+    - net-tools
+    - telnet
+    - sshfs
+    - python3-pip
+    - python-psycopg2
+    - libpq-dev  
+    - apt-transport-https  
+    - gnupg-curl
+    - openjdk-8-jre
+  tags:
+    - basic   
+
+- name: Install Pip packages.
+  pip:
+    name: psycopg2
+  tags:
+    - basic
+
+
+# - name: Upgrade all packages 
+#   apt:
+#     name: "*"
+#     state: latest
+#   register: apttt
+#   tags:
+#     - basic
+# - debug: msg="{{ apttt.stdout }}"
+
+# - name: Make sure the Rac-dev directory is present on server.
+#   file:
+#     path: /storage-box
+#     state: directory
+#     mode: '0755'
+#   tags:
+#     - basic   
+
+# - name: Mount Storage box to the /storage-box directory with sshfs.
+#   expect:
+#     command: /bin/bash -c "sshfs -o allow_other,default_permissions u204558@webpanel-u204558.your-storagebox.de:/recovery /store"
+#     responses:
+#       (?i)password: "pKJXSdTE9p2apJZ9"
+#   register: output
+#   tags: sshfs 
+
+# - name: Debugging Debug
+#   shell: ls -la
+#   register: shell_result
+#   tags:
+#     - basic 
+
+# - debug: 
+#     var: shell_result.stdout_lines
+#   tags:
+#     - basic
+
+# - name: Extract oraclejetapplication2.tar to /var/www/prod direcotry
+#   command: echo pKJXSdTE9p2apJZ9 | sudo sshfs -o password_stdin u204558@webpanel-u204558.your-storagebox.de:/recovery /storage-box
+#   tags:
+#     - basic 
+#     - sshfs 
+
+#/usr/bin/sshfs u204558@webpanel-u204558.your-storagebox.de:/recovery /storage-box
+
+# - name: Mount Media Directory
+#   shell: /bin/bash -c "/usr/bin/sshfs u204558@webpanel-u204558.your-storagebox.de:/recovery /storage-box"
+#   args:
+#     executable: /bin/bash
+#   become: yes
+#   tags: sshfs 
+
+
+# sudo echo pKJXSdTE9p2apJZ9 | sudo sshfs -o password_stdin u204558@webpanel-u204558.your-storagebox.de:/recovery /storage-box
+
+- name: Make sure the Prod directory is present on server.
+  file:
+    path: /var/www/prod/
+    state: directory
+    mode: '0755'
+    owner: www-data
+    group: www-data
+  tags:
+    - basic 
+    - sshfs 
+
+- name: Copy oraclejetapplication2.tar from /storage-box to /var/www/prod direcotry
+  command: find /storage-box -maxdepth 3 -type f -iname oraclejetapplication2.tar -exec cp {} /var/www/prod \;
+  args:
+    creates: /var/www/prod/oraclejetapplication2.tar
+  tags:
+    - basic 
+    - sshfs 
+
+- name: Extract oraclejetapplication2.tar to /var/www/prod direcotry
+  command: tar -xf oraclejetapplication2.tar
+  args:
+    chdir: /var/www/prod/
+    creates: /var/www/prod/oraclejetapplication2
+  tags:
+    - basic 
+    - sshfs 

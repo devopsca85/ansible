@@ -1,0 +1,12 @@
+[Unit]
+Description=jsreport app for RAC
+After=network.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=NPM_PATH_VARIABLE start --prefix {{ JSONREPORT_DOC_ROOT }}/jsreportapp
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

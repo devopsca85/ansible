@@ -1,0 +1,71 @@
+- name: Make sure the "{{ KEYCLOAK_DOCUMENT_ROOT }}/{{ KEYCLOAK_SERVICE }}" directory is present on server.
+  file:
+    path: "{{ KEYCLOAK_DOCUMENT_ROOT }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  tags:
+    - keycloak
+
+
+# Copy keycloak file backup to /opt/services/keycloak directory.
+- name: Copy {{ KEYCLOAK_BAK_FILE }} from /storage-box to {{ KEYCLOAK_DOCUMENT_ROOT }} direcotry
+  command: cp {{ MAIN_BACKUP_FOLDER }}/{{ KEYCLOAK_BAK_FILE }} {{ KEYCLOAK_DOCUMENT_ROOT }}/
+  args:
+    creates: "{{ KEYCLOAK_DOCUMENT_ROOT }}/{{ KEYCLOAK_BAK_FILE }}"
+  tags:
+    - keycloak
+
+- name: Extract {{ KEYCLOAK_BAK_FILE }} to {{ KEYCLOAK_DOCUMENT_ROOT }} direcotry
+  command: tar -xzf {{ KEYCLOAK_BAK_FILE }}
+  args:
+    chdir: "{{ KEYCLOAK_DOCUMENT_ROOT }}/"
+    creates: "{{ KEYCLOAK_DOCUMENT_ROOT }}/{{ KEYCLOAK_SERVICE }}"
+  register: keycloak
+  tags:
+    - keycloak
+
+- debug: 
+    var: keycloak.stdout_lines
+  tags:
+    - keycloak
+
+
+
+
+- name: Install Basic packages
+  apt:
+    name: openjdk-8-jre
+    state: present
+  tags:
+    - keycloak
+
+
+- name: Set Keycloak service definition.
+  template:
+    src: keycloak/keycloak.service.j2
+    dest: /etc/systemd/system/keycloak.service
+  tags:
+    - keycloak
+
+- name: Daemon-reload keycloak service.
+  command: systemctl daemon-reload
+  tags:
+    - keycloak 
+
+- name: Restart service keycloak.
+  service:
+    name: keycloak
+    state: restarted
+  tags:
+    - keycloak    
+
+- name: enable the apache site for {{ CLAVIS_APP_URL }} SSL in apache2.
+  command: a2ensite {{ CLAVIS_APP_URL }}-ssl
+  args:
+    creates: /etc/apache2/sites-enabled/{{ CLAVIS_APP_URL }}-ssl.conf
+  notify: Restart Apache2
+  tags:
+    - Apache2
+    - keycloak

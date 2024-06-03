@@ -1,0 +1,76 @@
+- name: Copy Rac-Dev configuration files in sites-available directory.
+  template:
+    src: postgresql/pgdg.list.j2
+    dest: /etc/apt/sources.list.d/pgdg.list
+  tags:
+    - postgresql
+
+
+- name: Add an Apt signing key for PostGresQL.
+  apt_key:
+    url: https://www.postgresql.org/media/keys/ACCC4CF8.asc
+    state: present
+  tags:
+    - postgresql
+
+
+- name: Update Repo List.
+  apt:
+    update_cache: yes
+  tags:
+    - postgresql
+
+
+- name: Install PostgreSQL v9.6 package.
+  apt:
+    name: postgresql-9.6
+    state: present
+  tags:
+    - postgresql
+
+
+- name: Set user password for postgres.
+  shell: sudo -u postgres psql -c "ALTER USER postgres WITH PASSWORD '{{ POSTGRESQL_USER_PASS }}';"
+  args:
+    creates: /var/lib/postgresql/keycloak.sql.gz
+  tags:
+    - postgresql
+
+
+- name: Copy keycloak.sql.gz from /storage-box to /var/lib/postgresql/
+  command: cp /storage-box/keycloak.sql.gz /var/lib/postgresql/
+  args:
+    creates: /var/lib/postgresql/keycloak.sql.gz
+  tags:
+    - postgresql 
+
+
+- name: Create a new database with name "Keycloak"
+  postgresql_db:
+    name: keycloak
+    login_user: "{{ POSTGRESQL_USER }}"
+    login_password: "{{ POSTGRESQL_USER_PASS }}"
+    login_host: localhost
+  tags:
+    - postgresql 
+
+- name: Make sure the Rac-dev directory is present on server.
+  file:
+    path: /var/lib/postgresql/keycloak.sql.gz
+    state: file
+    mode: '0644'
+    owner: postgres
+    group: postgres
+  tags:
+    - postgresql   
+
+- name: Restore keycloak database From a file.
+  postgresql_db:
+    name: keycloak
+    state: restore
+    login_user: "{{ POSTGRESQL_USER }}"
+    login_password: "{{ POSTGRESQL_USER_PASS }}"
+    login_host: localhost    
+    target: /var/lib/postgresql/keycloak.sql.gz
+  tags:
+    - postgresql 

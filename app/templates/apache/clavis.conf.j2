@@ -1,0 +1,28 @@
+<IfModule mod_ssl.c>
+<VirtualHost *:443>
+        ServerAdmin indy@pst.ag
+        DocumentRoot {{ CLAVIS_APP_URL }}
+        ServerName clavis-dev.pst.ag
+        ErrorLog ${APACHE_LOG_DIR}/{{ CLAVIS_APP_URL }}-error.log
+        CustomLog ${APACHE_LOG_DIR}/{{ CLAVIS_APP_URL }}-access.log combined
+
+
+        RewriteEngine On
+        ProxyPreserveHost On
+        SSLEngine on
+        SSLProxyEngine On
+        SSLProxyCheckPeerCN on
+        SSLProxyCheckPeerExpire on
+        RequestHeader set X-Forwarded-Port "443"
+        RequestHeader set X-Forwarded-Proto "https"
+
+        <Location "/">
+        ProxyPass "http://localhost:8080/"
+        </Location>
+        ProxyPass "/" "http://localhost:8080/"
+        ProxyPassReverse "/" "http://localhost:8080/"
+Include /etc/letsencrypt/options-ssl-apache.conf
+SSLCertificateFile /etc/letsencrypt/live/{{ CLAVIS_APP_URL }}/fullchain.pem
+SSLCertificateKeyFile /etc/letsencrypt/live/{{ CLAVIS_APP_URL }}/privkey.pem
+</VirtualHost>
+</IfModule>

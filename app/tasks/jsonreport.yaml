@@ -1,0 +1,105 @@
+- name: Add NodeSource repositories for Node.js.
+  apt_repository:
+    repo: "{{ item }}"
+    state: present
+  with_items:
+    - "deb https://deb.nodesource.com/node_{{ NODEJS_VERSION }} {{ ansible_distribution_release }} main"
+    - "deb-src https://deb.nodesource.com/node_{{ NODEJS_VERSION }} {{ ansible_distribution_release }} main"
+  tags:
+    - nodejs
+    - jsonreport
+
+
+- name: Add nodejs key file to keyring.
+  apt_key:
+    url: https://deb.nodesource.com/gpgkey/nodesource.gpg.key
+    state: present
+  tags:
+    - nodejs
+    - jsonreport
+
+
+- name: Update apt cache if repo was added.
+  apt: update_cache=yes
+  tags:
+    - nodejs
+    - jsonreport
+
+
+- name: Ensure Node.js and npm are installed.
+  apt: "name=nodejs={{ NODEJS_VERSION|regex_replace('x', '') }}* state=present"
+  tags:
+    - nodejs
+    - jsonreport
+
+
+
+- name: Set JsonReport service definition.
+  template:
+    src: jsonreport/jsonreport.conf.j2
+    dest: /etc/systemd/system/{{ JSONREPORT_SVC_NAME }}.service
+  tags:
+    - nodejs
+    - jsonreport
+
+
+- name: Make sure the Document Root Folder {{ JSONREPORT_DOC_ROOT }} is present on server.
+  file:
+    path: "{{ JSONREPORT_DOC_ROOT }}"
+    state: directory
+  tags:
+    - nodejs
+    - jsonreport
+
+- name: Copy {{ JSONREPORT_COMP_FILE }} from  Main Backup folder {{ MAIN_BACKUP_FOLDER }} to {{ JSONREPORT_DOC_ROOT }} direcotry
+  command: cp {{ MAIN_BACKUP_FOLDER }}/{{ JSONREPORT_COMP_FILE }} {{ JSONREPORT_DOC_ROOT }}/
+  args:
+    creates: "{{ JSONREPORT_DOC_ROOT }}/{{ JSONREPORT_COMP_FILE }}"
+  tags:
+    - nodejs
+    - jsonreport
+
+- name: Extract {{ JSONREPORT_COMP_FILE }} to {{ JSONREPORT_DOC_ROOT }} direcotry
+  command: tar -xzf {{ JSONREPORT_COMP_FILE }}
+  args:
+    chdir: "{{ JSONREPORT_DOC_ROOT }}/"
+    creates: "{{ JSONREPORT_DOC_ROOT }}/jsreportapp"
+  notify: Restart Jsonreport
+  tags:
+    - nodejs
+    - jsonreport
+
+
+- name: Get NPM Path.
+  command: which npm
+  register: npm_path
+  tags:
+    - nodejs
+    - jsonreport
+
+
+- name: Ansible replace string example
+  replace:
+    path: /etc/systemd/system/{{ JSONREPORT_SVC_NAME }}.service
+    regexp: 'NPM_PATH_VARIABLE'
+    replace: "{{ npm_path.stdout }}"
+  tags:
+    - nodejs
+    - jsonreport
+
+
+- name: Daemon-reload jsonreport service.
+  command: systemctl daemon-reload
+  tags:
+    - nodejs
+    - jsonreport
+
+
+- name: Restart service {{ JSONREPORT_SVC_NAME }}.
+  service:
+    name: "{{ JSONREPORT_SVC_NAME }}"
+    state: restarted
+  tags:
+    - nodejs
+    - jsonreport
+

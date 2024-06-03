@@ -1,0 +1,240 @@
+- name: Set arangodb Repo access in server.
+  template:
+    src: arangodb/arangodb.list.j2
+    dest: /etc/apt/sources.list.d/arangodb.list
+  tags:
+    - arangodb
+
+- name: Create /root/ArangoDB directory for Ansible checks data.
+  file: 
+    path: /root/ArangoDB
+    state: directory
+    mode: '0755'
+  tags:
+    - arangodb
+
+- name: Set arango key file.
+  template:
+    src: arangodb/arangodb.key.j2
+    dest: /root/ArangoDB/arangodb.key
+  tags:
+    - arangodb
+
+- name: Add arango key file to keyring
+  apt_key:
+    file: /root/ArangoDB/arangodb.key
+    state: present
+  tags:
+    - arangodb
+
+
+- name: Update Repo List.
+  apt:
+    update_cache: yes
+  tags:
+    - arangodb
+
+
+- name: Install ArangoDB 3.3.11 package.
+  apt:
+    name: arangodb3=3.3.11
+    state: present
+  tags:
+    - arangodb
+
+
+- name: Ensure arangodb group exists
+  group: 
+    name: arangodb 
+    state: present 
+  tags:
+    - arangodb
+
+
+- name: Ensure arangodb user exists
+  user: 
+    name: arangodb 
+    state: present
+  tags:
+    - arangodb
+
+- name: Install Arangodb
+  apt: 
+    name: arangodb3=3.3.11 
+    state: present
+  tags: 
+    - arangodb
+
+- name: Make sure the /data/PSTSOA/arangodb3 directory is present on server.
+  file:
+    path: /data/PSTSOA/arangodb3
+    state: directory
+    owner: arangodb
+    group: arangodb
+    mode: '0700'
+  tags:
+    - arangodb
+
+- name: Set Custom Arangod configuration file.
+  template:
+    src: arangodb/arangod.conf.j2
+    dest: /etc/arangodb3/arangod.conf
+  notify: Restart ArangoDB
+  tags:
+    - arangodb
+
+
+- name: Restart service arangodb.
+  service:
+    name: arangodb
+    state: restarted
+  tags:
+    - arangodb
+
+- name: Wait 10 seconds for port 8529 to become open on the host.
+  wait_for:
+    port: 8529
+    delay: 10
+  tags:
+    - arangodb
+
+- name: Update root user password for Arangodb.
+  shell: echo 'require("org/arangodb/users").update("{{ ARANGODB_ROOT_USER }}", "{{ ARANGODB_ROOT_PASS }}");' | arangosh --server.password ""
+  args:
+    creates: /root/ArangoDB/arango.txt
+  notify: Restart ArangoDB    
+  register: shell_result
+  tags:
+    - arangodb
+
+- debug: 
+    var: shell_result.stdout_lines
+  tags:
+    - arangodb
+
+- name: Restart service arangodb.
+  service:
+    name: arangodb
+    state: restarted
+  tags:
+    - arangodb
+
+- name: Wait 10 seconds for port 8529 to become open on the host.
+  wait_for:
+    port: 8529
+    delay: 10
+  tags:
+    - arangodb
+
+- name: check for user creation.
+  shell: touch /root/ArangoDB/arango.txt
+  args:
+    creates: /root/ArangoDB/arango.txt
+  tags:
+    - arangodb
+
+- name: Set authentication to true in Arangod.conf.
+  lineinfile:
+    path: /etc/arangodb3/arangod.conf
+    regexp: '^authentication ='
+    line: authentication = true
+  notify: Restart ArangoDB
+  tags:
+    - arangodb
+
+
+- name: Restore ArangoDB database backups.
+  shell: arangorestore --server.username "{{ ARANGODB_ROOT_USER }}" --server.password "{{ ARANGODB_ROOT_PASS }}" --input-directory "/storage-box/arangoDump" --server.database "_system" --include-system-collections true --create-database true
+  args:
+    creates: /root/ArangoDB/arango-db-restore.txt
+  notify: Restart ArangoDB    
+  register: arango_db
+  tags:
+    - arangodb
+
+- debug: 
+    var: arango_db.stdout_lines
+  tags:
+    - arangodb
+
+- name: Wait 5 seconds for port 8529 to become open on the host.
+  wait_for:
+    port: 8529
+    delay: 5
+  tags:
+    - arangodb
+
+- name: Restart service arangodb.
+  service:
+    name: arangodb
+    state: restarted
+  tags:
+    - arangodb
+
+- name: Wait 10 seconds for port 8529 to become open on the host.
+  wait_for:
+    port: 8529
+    delay: 10
+  tags:
+    - arangodb
+
+- name: check for DB restoration process.
+  shell: touch /root/ArangoDB/arango-db-restore.txt
+  args:
+    creates: /root/ArangoDB/arango-db-restore.txt
+  tags:
+    - arangodb
+
+
+- name: Create RaC user and password for Arangodb.
+  shell: echo 'require("@arangodb/users").save("{{ ARANGODB_RAC_USER }}", "{{ ARANGODB_RAC_PASS }}");' | arangosh --server.password "{{ ARANGODB_ROOT_PASS }}"
+  args:
+    creates: /root/ArangoDB/RaC_user.txt
+  notify: Restart ArangoDB    
+  register: RaC_user
+  tags:
+    - arangodb
+
+
+- debug: 
+    var: RaC_user.stdout_lines
+  tags:
+    - arangodb
+
+
+- name: Restart service arangodb.
+  service:
+    name: arangodb
+    state: restarted
+  tags:
+    - arangodb
+
+- name: Wait 10 seconds for port 8529 to become open on the host.
+  wait_for:
+    port: 8529
+    delay: 10
+  tags:
+    - arangodb
+
+
+- name: Grant RaC user Read only access on system db..
+  shell: echo 'require("@arangodb/users").grantDatabase("{{ ARANGODB_RAC_USER }}", "_system", "ro");' | arangosh --server.password "{{ ARANGODB_ROOT_PASS }}"
+  args:
+    creates: /root/ArangoDB/RaC_user.txt
+  notify: Restart ArangoDB    
+  register: RaC_user
+  tags:
+    - arangodb
+
+
+- debug: 
+    var: RaC_user.stdout_lines
+  tags:
+    - arangodb
+
+- name: check for RaC user process.
+  shell: touch /root/ArangoDB/RaC_user.txt
+  args:
+    creates: /root/ArangoDB/RaC_user.txt
+  tags:
+    - arangodb
